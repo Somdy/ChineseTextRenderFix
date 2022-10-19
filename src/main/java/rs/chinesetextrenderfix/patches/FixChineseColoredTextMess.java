@@ -1,8 +1,6 @@
 package rs.chinesetextrenderfix.patches;
 
-import basemod.patches.com.megacrit.cardcrawl.helpers.FontHelper.FixChineseNoPurpleColor;
 import com.badlogic.gdx.graphics.Color;
-import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.GlyphLayout;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
@@ -24,30 +22,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class FixChineseColoredTextMess {
-    @SpirePatch2(clz = FontHelper.class, method = "getHeightForCharLineBreak")
-    public static class FixChineseTextHeightWithoutIgnoringEscapeCharsPatch {
-        @SpireInsertPatch(locator = Locator.class, localvars = {"word"})
-        public static void Insert(@ByRef String[] word) {
-            if (usingHexColor(word[0])) {
-                int dropStart = word[0].indexOf("]") + 1;
-                int dropEnd = word[0].lastIndexOf("[");
-                word[0] = word[0].substring(dropStart, dropEnd);
-            }
-        }
-        private static class Locator extends SpireInsertLocator {
-            @Override
-            public int[] Locate(CtBehavior ctBehavior) throws Exception {
-                Matcher.MethodCallMatcher matcher = new Matcher.MethodCallMatcher(String.class, "equals");
-                int correctLine = LineFinder.findAllInOrder(ctBehavior, matcher)[0];
-                return new int[]{correctLine};
-            }
-        }
-        private static boolean usingHexColor(String word) {
-            return word.length() > 0 && word.charAt(0) == '[' && word.length() > 1 && word.charAt(1) == '#'
-                    && word.charAt(8) == ']' && word.endsWith("[]");
-        }
-    }
-    
     @SpirePatch2(clz = FontHelper.class, method = "getHeightForCharLineBreak")
     public static class FixGetHeightForChineseText {
         private static final float CARD_ENERGY_IMG_WIDTH = 26F * Settings.scale;
@@ -82,8 +56,8 @@ public class FixChineseColoredTextMess {
                                 }
                             }
                         } else if (usingEnergyIcon(word)) {
-                            TextureAtlas.AtlasRegion orb = identifyOrb(word);
-                            if (orb != null) {
+                            boolean hasOrb = identifyOrb(word);
+                            if (hasOrb) {
                                 curWidth += CARD_ENERGY_IMG_WIDTH;
                                 if (curWidth > lineWidth) {
                                     curWidth = CARD_ENERGY_IMG_WIDTH;
@@ -137,28 +111,20 @@ public class FixChineseColoredTextMess {
             return word.length() > 1 && word.charAt(1) == 'E' && word.endsWith("]");
         }
     
-        private static TextureAtlas.AtlasRegion identifyOrb(String word) {
+        private static boolean identifyOrb(String word) {
             switch (word) {
                 case "[E]":
-                    return (AbstractDungeon.player != null) ? AbstractDungeon.player.getOrb() : AbstractCard.orb_red;
                 case "[R]":
-                    return AbstractCard.orb_red;
                 case "[G]":
-                    return AbstractCard.orb_green;
                 case "[B]":
-                    return AbstractCard.orb_blue;
                 case "[W]":
-                    return AbstractCard.orb_purple;
                 case "[C]":
-                    return AbstractCard.orb_card;
                 case "[P]":
-                    return AbstractCard.orb_potion;
                 case "[T]":
-                    return AbstractCard.orb_relic;
                 case "[S]":
-                    return AbstractCard.orb_special;
+                    return true;
             }
-            return null;
+            return false;
         }
     }
     
