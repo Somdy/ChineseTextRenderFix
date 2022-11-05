@@ -4,11 +4,8 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.GlyphLayout;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-import com.badlogic.gdx.graphics.g2d.TextureAtlas;
 import com.evacipated.cardcrawl.modthespire.lib.*;
-import com.megacrit.cardcrawl.cards.AbstractCard;
 import com.megacrit.cardcrawl.core.Settings;
-import com.megacrit.cardcrawl.dungeons.AbstractDungeon;
 import com.megacrit.cardcrawl.helpers.FontHelper;
 import javassist.*;
 import javassist.bytecode.LocalVariableAttribute;
@@ -17,6 +14,7 @@ import javassist.expr.Expr;
 import javassist.expr.ExprEditor;
 import javassist.expr.FieldAccess;
 import javassist.expr.MethodCall;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -33,6 +31,7 @@ public class FixChineseColoredTextMess {
             float curWidth = 0F;
             float totalHeight = 0F;
             String[] strings = msg.split(" ");
+            boolean reachEnd;
             for (String word : strings) {
                 if (word != null && !word.isEmpty()) {
                     if (word.equals("NL")) {
@@ -80,10 +79,11 @@ public class FixChineseColoredTextMess {
                         for (int i = 0; i < word.length(); i++) {
                             String j = Character.toString(word.charAt(i));
                             layout.setText(font, j);
-                            curWidth +=layout.width;
+                            curWidth += layout.width;
                             if (curWidth > lineWidth) {
                                 curWidth = layout.width;
-                                currentLine++;
+                                reachEnd = isProbableEndOfMsg(j, word, strings);
+                                if (!reachEnd) currentLine++;
                             }
                         }
                     }
@@ -93,6 +93,11 @@ public class FixChineseColoredTextMess {
                 totalHeight = currentLine * lineSpacing;
             }
             return SpireReturn.Return(totalHeight);
+        }
+        
+        private static boolean isProbableEndOfMsg(String singleChar, @NotNull String word, @NotNull String[] srcMsg) {
+            return Character.toString(word.charAt(word.length() - 1)).equals(singleChar)
+                    && srcMsg[srcMsg.length - 1].equals(word);
         }
         
         private static boolean usingVanillaColorCode(String word) {
@@ -258,9 +263,9 @@ public class FixChineseColoredTextMess {
                     }
                 });
             }
-            enwwt.insertAt(fixMethodLine, "{" + fixClass + ".DoFix(sb, font, x, y, c, widthMax, lineSpacing,"
-                    + curWidthArray + ", " + curLineArray + ", word);curWidth=" + curWidthArray + "[0];currentLine="
-                    + curLineArray + "[0];}");
+            enwwt.insertAt(fixMethodLine, "{if(" + usingFixMethodParam + "){" + fixClass + ".DoFix(sb, font, x, y, c, widthMax, " +
+                    "lineSpacing," + curWidthArray + ", " + curLineArray + ", word);curWidth=" + curWidthArray + "[0];currentLine="
+                    + curLineArray + "[0];}}");
         }
     
         public static void DoFix(SpriteBatch sb, BitmapFont font, float x, float y, Color c, float widthMax, float lineSpacing, 
